@@ -43,16 +43,3 @@ export const effect: Effect = (effectCallback) => {
   effectCallback();
   currentEffectFn = null; // Reset the current effect callback function.
 };
-
-// TODO: add these as tests later
-const [primitive, setPrimitive] = observable<string>('John');
-console.log(primitive()); // John
-
-// This effect will run at least once.
-effect(() => {
-  // This console.log should be called on each state change !
-  console.log('From effect --- ', primitive());
-});
-
-setPrimitive('Jane'); // Should trigger the effect
-setPrimitive('Bob'); // Should not trigger the effect
