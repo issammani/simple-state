@@ -2,7 +2,9 @@ type GetterFn<T> = () => T;
 type SetterFn<T> = (value: T) => void;
 type Observable = <T>(value: T) => [GetterFn<T>, SetterFn<T>];
 type EffectCallback = () => any;
+type ComputedCallback<T> = () => T;
 type Effect = (effectCallback: EffectCallback) => void;
+type Computed = <T>(computedCallback: ComputedCallback<T>) => T;
 
 // This global variable is used to get the currently running effect.
 // We need this to be able to dynamically track dependencies without needing
@@ -34,6 +36,9 @@ export const observable: Observable = <T>(value: T) => {
   return [getter, setter];
 };
 
+// This function is used to run side effects.
+// This is equivalent to `useEffect(() => { ... }, [....])`.
+// Note that by design we don't need to provide a dependency list.
 export const effect: Effect = (effectCallback) => {
   // We set the current effect to be the effect we are currently running
   // Then we call the effect function. This will in turn call the getter.
@@ -42,4 +47,22 @@ export const effect: Effect = (effectCallback) => {
   currentEffectFn = effectCallback;
   effectCallback();
   currentEffectFn = null; // Reset the current effect callback function.
+};
+
+// A computed is used to describe a value that depends on other computed / observable values.
+// At a high level, the computed function is just an effect that returns a value (getter from an observable).
+export const computed = <T>(computedCallback: ComputedCallback<T>) => {
+  // We create an observable that will keep track of the value,
+  // when the effect runs.
+  const [_computed, _setComputed] = observable<T | null>(null);
+
+  effect(() => {
+    // When the effect runs, we call the computed function.
+    // This will in turn call the getter.
+    // This way we can keep track of the computedCallback as a dependency
+    // of the observable values it uses.
+    _setComputed(computedCallback());
+  });
+
+  return _computed;
 };
